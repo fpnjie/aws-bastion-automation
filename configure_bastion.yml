@@ -1,0 +1,40 @@
+---
+- name: Secure and Configure Bastion Host
+  hosts: bastion
+  become: yes
+
+  tasks:
+    - name: Install required security tools
+      yum:
+        name:
+          - fail2ban
+          - vim
+        state: present
+
+    - name: Disable root SSH login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^PermitRootLogin"
+        line: "PermitRootLogin no"
+      notify: restart ssh
+
+    - name: Set up an SSH banner
+      copy:
+        content: "Unauthorized access is prohibited!"
+        dest: /etc/issue.net
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Ensure banner is enabled in SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        line: "Banner /etc/issue.net"
+      notify: restart ssh
+
+  handlers:
+    - name: restart ssh
+      service:
+        name: sshd
+        state: restarted
+
